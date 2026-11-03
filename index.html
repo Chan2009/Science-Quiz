@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KSSM Science F4&5 — KL Trial 2026 Quiz</title>
+<style>
+  :root { --p: #2563eb; --g: #16a34a; --r: #dc2626; --n: #f59e0b; }
+  * { box-sizing: border-box; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; margin:0; padding:0; }
+  body { background:#f8fafc; padding:1rem; max-width:900px; margin:0 auto; }
+  header { text-align:center; margin-bottom:1.5rem; }
+  h1 { color:#1e293b; font-size:1.3rem; }
+  .meta { color:#64748b; font-size:0.85rem; margin:.3rem 0 1rem; }
+  .timer { font-weight:bold; color:var(--r); font-size:1rem; }
+  .progress { height:8px; background:#e2e8f0; border-radius:4px; margin-bottom:1rem; overflow:hidden; }
+  .prog-bar { height:100%; background:var(--p); width:0; transition:width .3s; }
+  .q-card { background:white; border-radius:12px; padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px #0001; display:none; }
+  .q-card.active { display:block; }
+  .q-num { font-weight:bold; color:var(--p); margin-bottom:.5rem; font-size:0.9rem; }
+  .q-text { font-size:1rem; line-height:1.6; margin-bottom:1rem; }
+  .opts { display:grid; gap:.6rem; }
+  .opt { border:2px solid #e2e8f0; border-radius:8px; padding:.9rem 1rem; cursor:pointer; transition:.2s; font-size:0.95rem; }
+  .opt:hover { border-color:var(--p); background:#eff6ff; }
+  .opt.correct { border-color:var(--g); background:#f0fdf4; font-weight:bold; }
+  .opt.wrong { border-color:var(--r); background:#fef2f2; }
+  .opt.disabled { pointer-events:none; opacity:.7; }
+  .feed { margin-top:.8rem; padding:.75rem; border-radius:6px; display:none; font-size:0.9rem; }
+  .feed.show { display:block; }
+  .feed.correct { background:#f0fdf4; color:#166534; border-left:4px solid var(--g); }
+  .feed.wrong { background:#fef2f2; color:#991b1b; border-left:4px solid var(--r); }
+  .nav { display:flex; justify-content:space-between; margin:1.5rem 0; flex-wrap:wrap; gap:.5rem; }
+  button { padding:.7rem 1.2rem; border:none; border-radius:8px; font-size:0.95rem; cursor:pointer; }
+  .btn-primary { background:var(--p); color:white; }
+  .btn-secondary { background:#e2e8f0; color:#334155; }
+  .result-card { background:white; border-radius:12px; padding:2rem; text-align:center; display:none; box-shadow:0 4px 12px #0002; }
+  .score { font-size:2.2rem; font-weight:bold; margin:1rem 0; }
+  .grade { font-size:1.1rem; margin-bottom:1rem; }
+  .history { margin-top:2rem; background:white; border-radius:12px; padding:1rem; display:none; }
+  .history h3 { margin-bottom:.8rem; font-size:1rem; }
+  .history-item { padding:.5rem; border-bottom:1px solid #eee; font-size:0.9rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧪 KSSM Science Form 4 & 5 — KL Trial 2026</h1>
+  <div class="meta">40 Questions | Time: 75 min | SPM 1511/1</div>
+  <div class="timer" id="timer">⏱ Time Left: 75:00</div>
+  <div class="progress"><div class="prog-bar" id="progBar"></div></div>
+</header>
+
+<div id="quizContainer"></div>
+
+<div class="nav">
+  <button class="btn-secondary" id="prevBtn" onclick="goPrev()">← Previous</button>
+  <button class="btn-primary" id="nextBtn" onclick="goNext()">Next →</button>
+  <button class="btn-primary" id="finishBtn" onclick="showResult()" style="display:none;">Finish ✓</button>
+</div>
+
+<div class="result-card" id="resultCard">
+  <h2>🎉 Quiz Complete!</h2>
+  <div class="score" id="finalScore"></div>
+  <div class="grade" id="gradeText"></div>
+  <p id="gradeDesc"></p>
+  <br>
+  <button class="btn-primary" onclick="restartQuiz()">🔄 Try Again</button>
+</div>
+
+<div class="history" id="historySection">
+  <h3>📊 Your Attempts</h3>
+  <div id="historyList"></div>
+</div>
+
+<script>
+const questions = [
+  {id:1, text:"1. Which PPE protects against chemical splashes to the eyes?", opts:["A. Goggles","B. Lab coat","C. Gloves","D. Covered shoes"], ans:"A", exp:"KSSM F4 Ch1 — Lab Safety"},
+  {id:2, text:"2. Who needs the Heimlich Manoeuvre?", opts:["A. Not breathing","B. No heartbeat","C. Holding the neck with both hands (choking)","D. Unresponsive"], ans:"C", exp:"KSSM F4 Ch1 — First Aid"},
+  {id:3, text:"3. BP reading 145/92 mmHg — what category?", opts:["A. Normal","B. Optimal","C. High BP Stage 1","D. High BP Stage 2"], ans:"C", exp:"KSSM F4 Ch2 — Cardiovascular Health"},
+  {id:4, text:"4. BMI 17 kg/m² + tired often — best long-term fix?", opts:["A. Balanced diet + regular exercise","B. Eat less to stay slim","C. Energy drinks daily","D. Exercise without rest"], ans:"A", exp:"KSSM F4 Ch2 — Nutrition"},
+  {id:5, text:"5. Solar panels on buildings = which Green Tech sector?", opts:["A. Energy","B. Transport","C. Waste Management","D. Agriculture"], ans:"A", exp:"KSSM F5 Ch11 — Green Tech"},
+  {id:6, text:"6. Rice straw turned into products — benefit to farmers?", opts:["A. Air pollution fully stopped","B. No more burning","C. Can be sold as biodegradable packaging material","D. No more dust for neighbours"], ans:"C", exp:"KSSM F5 Ch11 — Agri Waste"},
+  {id:7, text:"7. Soil acidic + pests; want eco-friendly method?", opts:["A. More chemical fertiliser","B. Spray poison less often","C. Drone spray chemicals precisely","D. Organic fertiliser + biological pest control"], ans:"D", exp:"KSSM F5 Ch11 — Sustainable Farming"},
+  {id:8, text:"8. Chromosomes aligned at equatorial plate = which mitosis stage?", opts:["A. Cytokinesis","B. Metaphase","C. Meiotic metaphase I","D. Prophase"], ans:"B", exp:"KSSM F4 Ch3 — Mitosis"},
+  {id:9, text:"9. Advantage of GM plants?", opts:["A. Less nutrition","B. Cheaper to sell","C. More pesticides needed","D. Resistant to disease"], ans:"D", exp:"KSSM F4 Ch4 — GMOs"},
+  {id:10, text:"10. Growth chart = smooth curve = which variation?", opts:["A. Discontinuous — distinct groups","B. Discontinuous — bell curve","C. Continuous — full range of values","D. Continuous — fixed categories"], ans:"C", exp:"KSSM F4 Ch4 — Variation"},
+  {id:11, text:"11. Insect exoskeleton main function?", opts:["A. Surface for muscle attachment","B. Support body weight","C. Protect internal organs","D. Maintain shape"], ans:"A", exp:"KSSM F4 Ch6 — Animal Support"},
+  {id:12, text:"12. Thyroid gland removed → what happens?", opts:["A. BP rises","B. Metabolism slows down","C. Blood sugar rises","D. No secondary sex traits"], ans:"B", exp:"KSSM F4 Ch7 — Endocrine System"},
+  {id:13, text:"13. Heart failure, cirrhosis, ulcers → substance X?", opts:["A. Drugs","B. Alcohol","C. Painkillers","D. Antioxidants"], ans:"B", exp:"KSSM F4 Ch8 — Alcohol Effects"},
+  {id:14, text:"14. Modern Periodic Table arranged by?", opts:["A. Nucleon number","B. Relative atomic mass","C. Proton number","D. Electron count"], ans:"C", exp:"KSSM F4 Ch9 — Periodic Table"},
+  {id:15, text:"15. Which is an alloy?", opts:["A. Duralumin","B. Magnesium","C. Aluminium","D. Copper"], ans:"A", exp:"KSSM F4 Ch10 — Alloys"},
+  {id:16, text:"16. Hard, strong, corrosion‑resistant alloy for keys?", opts:["A. Bronze","B. Brass","C. Duralumin","D. Stainless steel"], ans:"B", exp:"KSSM F4 Ch10 — Alloy Uses"},
+  {id:17, text:"17. Natural ingredients, no chemicals, gradual treatment?", opts:["A. Acupuncture","B. Homeopathy","C. Chemotherapy","D. Chiropractic"], ans:"B", exp:"KSSM F5 Ch12 — Medicine"},
+  {id:18, text:"18. Best way to keep cut fruit fresh?", opts:["A. Soak in plain water","B. Seal in container","C. Coat with lemon juice","D. Leave exposed"], ans:"C", exp:"KSSM F5 Ch13 — Food Preservation"},
+  {id:19, text:"19. Soft tissue manipulation using hands → description?", opts:["A. Massage therapy","B. Fully scientifically proven","C. Uses drugs","D. Instant cure for pain"], ans:"A", exp:"KSSM F5 Ch12 — Complementary Medicine"},
+  {id:20, text:"20. 10m/30s → rest 5s → 5m/10s → correct statement?", opts:["A. Velocity before rest = 0.5 m/s","B. Total displacement = 15 m","C. Avg velocity ≈ 0.33 m/s (≈0.38)","D. Total time = 40 s"], ans:"C", exp:"KSSM F5 Ch1 — Motion"},
+  {id:21, text:"21. Negative gradient on velocity‑time graph = ?", opts:["A. Stationary","B. Accelerating up","C. Constant velocity","D. Deceleration"], ans:"D", exp:"KSSM F5 Ch1 — Motion Graphs"},
+  {id:22, text:"22. Nuclear plant: steam spins X → electricity?", opts:["A. Generator","B. Condenser","C. Coolant","D. Turbine"], ans:"D", exp:"KSSM F5 Ch2 — Nuclear Energy"},
+  {id:23, text:"23. Which is a GENETIC radiation effect?", opts:["A. Nausea","B. Cataract","C. Cell mutation","D. Hair loss"], ans:"C", exp:"KSSM F5 Ch2 — Radiation Effects"},
+  {id:24, text:"24. Food with lemon stays fresh longer — why?", opts:["A. Bad container seal","B. Low pH slows microbes","C. Room temp preserves food","D. Dark stops spoilage"], ans:"B", exp:"KSSM F5 Ch13 — Food & pH"},
+  {id:25, text:"25. Bacteria for making yogurt?", opts:["A. Lactobacillus sp.","B. Salmonella sp.","C. Nitrobacter sp.","D. Bifidobacterium sp."], ans:"A", exp:"KSSM F5 Ch13 — Microbes in Food"},
+  {id:26, text:"26. Which is a food stabiliser?", opts:["A. Sugar","B. Salt","C. Starch","D. Vinegar"], ans:"C", exp:"KSSM F5 Ch13 — Food Additives"},
+  {id:27, text:"27. Excess processed food linked to high BP & heart disease → additive?", opts:["A. Colouring","B. Bleach","C. Flavour","D. Sweetener/Sodium"], ans:"D", exp:"KSSM F5 Ch13 — Additive Health"},
+  {id:28, text:"28. Yellowing between leaf veins → lacking?", opts:["A. Phosphorus","B. Potassium","C. Nitrogen","D. Magnesium"], ans:"D", exp:"KSSM F5 Ch11 — Plant Nutrition"},
+  {id:29, text:"29. Salting fish → purpose?", opts:["A. Less nutrition","B. Inhibit bacteria via osmosis","C. Slow enzymes only","D. More fat"], ans:"B", exp:"KSSM F5 Ch13 — Salting"},
+  {id:30, text:"30. Microalgae in negative emission tech → role?", opts:["A. Absorb CO₂ in photosynthesis","B. Release CO₂","C. Decompose organics","D. CO₂→O₂ in respiration"], ans:"A", exp:"KSSM F5 Ch11 — Carbon Sequestration"},
+  {id:31, text:"31. High BOD means?", opts:["A. Lots of oxygen","B. Organic pollution present","C. Safe to drink","D. Clean water"], ans:"B", exp:"KSSM F5 Ch11 — Water Quality"},
+  {id:32, text:"32. Gas volume stops rising after 80s → conclusion?", opts:["A. Speeding up","B. Rate highest at 80s","C. Reaction finished","D. Gas still rising"], ans:"C", exp:"KSSM F5 Ch9 — Reaction Rate"},
+  {id:33, text:"33. Whole vs cut potato same mass → correct?", opts:["A. Whole = bigger surface area","B. Whole takes longer to cook","C. Same time","D. Whole needs higher temp"], ans:"B", exp:"KSSM F5 Ch9 — Surface Area"},
+  {id:34, text:"34. C₃H₆ with C=C → compound Y?", opts:["A. Butane","B. Butene","C. Propane","D. Propene"], ans:"D", exp:"KSSM F5 Ch10 — Hydrocarbons"},
+  {id:35, text:"35. Saturated fat characteristic?", opts:["A. Usually animal source","B. Liquid at room temp","C. Low melting point","D. Soluble in water"], ans:"A", exp:"KSSM F5 Ch10 — Fats"},
+  {id:36, text:"36. Oil palm fruit fibrous husk/sabut?", opts:["A. Outer fibrous layer","B. Shell","C. Kernel","D. Mesocarp"], ans:"A", exp:"KSSM F5 Ch10 — Palm Oil"},
+  {id:37, text:"37. Electrolysis CuSO₄ carbon electrodes → cathode?", opts:["A. Oxygen gas","B. Hydrogen gas","C. Electrode dissolves","D. Copper deposits"], ans:"D", exp:"KSSM F4 Ch10 — Electrolysis"},
+  {id:38, text:"38. Virtual, upright, magnified image → feature?", opts:["A. Image larger than object","B. Image smaller","C. Inverted image","D. Real image on screen"], ans:"A", exp:"KSSM F5 Ch4 — Lenses"},
+  {id:39, text:"39. Hydraulic system: load 50 kg, areas A=0.04 m², B=1 m² → force A? (1kg=10N)", opts:["A. 2 N","B. 20 N","C. 125 N","D. 400 N"], ans:"A", exp:"KSSM F5 Ch5 — Hydraulics: F₁/A₁=F₂/A₂"},
+  {id:40, text:"40. GPS provides?", opts:["A. Season","B. Weather","C. Location","D. Population"], ans:"C", exp:"KSSM F5 Ch6 — GPS Tech"}
+];
+
+let current = 0, score = 0, answered = {}, timeLeft = 75*60, timer;
+let history = JSON.parse(localStorage.getItem('quizHistory')||'[]');
+
+function render(){
+  const c = questions[current];
+  const cont = document.getElementById('quizContainer');
+  cont.innerHTML = `<div class="q-card active">
+    <div class="q-num">Question ${current+1} of ${questions.length}</div>
+    <div class="q-text">${c.text}</div>
+    <div class="opts">${c.opts.map((o,i)=>{
+      let cl='opt';
+      if(answered[current]!==undefined){
+        const chosen = answered[current];
+        const optLetter = o.charAt(0);
+        if(optLetter===c.ans) cl+=' correct disabled';
+        else if(optLetter===chosen) cl+=' wrong disabled';
+        else cl+=' disabled';
+      }
+      return `<div class="${cl}" onclick="pick('${o[0]}')">${o}</div>`;
+    }).join('')}</div>
+    <div class="feed ${answered[current]!==undefined?'show':''} ${answered[current]===c.ans?'correct':'wrong'}" id="feed">
+      ${answered[current]===c.ans?'✅ Correct!':'❌ Wrong. Answer: '+c.ans} — ${c.exp}
+    </div>
+  </div>`;
+  updateNav();
+  document.getElementById('progBar').style.width = ((current+1)/questions.length*100)+'%';
+}
+
+function pick(letter){
+  if(answered[current]!==undefined) return;
+  answered[current] = letter;
+  render();
+}
+
+function updateNav(){
+  document.getElementById('prevBtn').style.visibility = current>0?'visible':'hidden';
+  document.getElementById('nextBtn').style.display = current<questions.length-1?'inline-block':'none';
+  document.getElementById('finishBtn').style.display = current===questions.length-1?'inline-block':'none';
+}
+
+function goPrev(){ if(current>0){ current--; render(); } }
+function goNext(){ if(current<questions.length-1){ current++; render(); } }
+
+function showResult(){
+  clearInterval(timer);
+  score = Object.entries(answered).filter(([k,v])=>questions[+k].ans===v).length;
+  const pct = Math.round(score/questions.length
